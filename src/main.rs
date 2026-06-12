@@ -6,7 +6,7 @@ use gui::message::Message;
 use gui::snake::Snake;
 
 pub const X_COORDS: u32 = 800;
-pub const Y_COORDS: u32 = 60;
+pub const Y_COORDS: u32 = 600;
 pub const DISCRETIZATION_STEP: u32 = 10;
 
 fn main() -> iced::Result {
@@ -15,11 +15,12 @@ fn main() -> iced::Result {
     let x = X_COORDS + DISCRETIZATION_STEP;
     let y = Y_COORDS + DISCRETIZATION_STEP;
 
-    iced::application("Snake", Snake::update, Snake::view)
+    iced::application(Snake::new, Snake::update, Snake::view)
+        .title("Snake")
         .subscription(Snake::subscription)
         .window(window::Settings {
-            size: iced::Size::new(x, y),
+            size: iced::Size::new(x as f32, y as f32),
             ..Default::default()
         })
-        .run_with(Snake::new)
+        .run()
 }

@@ -1,6 +1,6 @@
-use iced::{Element, Subscription, Task, Rectangle, Renderer, Theme};
+use iced::{Element, Subscription, Task, Rectangle, Renderer, Theme, mouse};
 use iced::widget::canvas;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 use super::message::Message;
 use crate::{X_COORDS, Y_COORDS, DISCRETIZATION_STEP};
@@ -113,7 +113,7 @@ impl Game {
             .filter(|c| !snake_positions.iter().any(|s| s.x == c.x && s.y == c.y))
             .collect();
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         candidates.choose(&mut rng).cloned().expect("no valid position")
     }
 
@@ -131,7 +131,7 @@ impl canvas::Program<Message> for Game {
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: canvas::Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
         let mut frame = canvas::Frame::new(renderer, bounds.size());
         let step = DISCRETIZATION_STEP as f32;
@@ -170,7 +170,10 @@ impl Snake {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        todo!()
+        canvas(&self.game)
+            .width(X_COORDS + DISCRETIZATION_STEP)
+            .height(Y_COORDS + DISCRETIZATION_STEP)
+            .into()
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
