@@ -1,4 +1,6 @@
 use iced::{Element, Subscription, Task, Rectangle, Renderer, Theme, mouse};
+use iced::time::Duration;
+use iced::Event::Keyboard;
 use iced::widget::canvas;
 use rand::seq::IndexedRandom;
 
@@ -51,14 +53,7 @@ impl Player {
         }
     }
 
-    pub fn move_direction(self, new_direction: Direction) -> Self {
-        match new_direction {
-            d if self.direction.is_opposite(d) => self,
-            d => self.add_unit_direction(d),
-        }
-    }
-
-    fn add_unit_direction(mut self, direction: Direction) -> Self {
+    fn move_direction(&mut self, direction: Direction) {
         let old_head = self.position[0].clone();
         let new_head = match direction {
             Direction::Up    => Coords { x: old_head.x,                        y: old_head.y - DISCRETIZATION_STEP },
@@ -69,7 +64,6 @@ impl Player {
         self.direction = direction;
         self.position.insert(0, new_head);
         self.position.pop();
-        self
     }
 }
 
@@ -165,8 +159,40 @@ impl Snake {
         (Snake { game: Game::new() }, Task::none())
     }
 
-    pub fn update(&mut self, _message: Message) -> Task<Message> {
-        todo!()
+    pub fn update(&mut self, message: Message) -> Task<Message> {
+        let current_direction = self.game.snake_obj.direction.clone();
+
+        match message {
+            Message::TimeMove => { 
+                self.game.snake_obj.move_direction(current_direction);
+                Task::none() 
+            },
+            Message::UpArrowPressed => {
+                if !self.game.snake_obj.direction.is_opposite(Direction::Up) {
+                    self.game.snake_obj.direction = Direction::Up
+                };
+                Task::none()
+            },
+            Message::DownArrowPressed => {
+                if !self.game.snake_obj.direction.is_opposite(Direction::Down) {
+                    self.game.snake_obj.direction = Direction::Down
+                };
+                Task::none()
+            },
+            Message::LeftArrowPressed => {
+                if !self.game.snake_obj.direction.is_opposite(Direction::Left) {
+                    self.game.snake_obj.direction = Direction::Left
+                };
+                Task::none()
+            },
+            Message::RightArrowPressed => {
+                if !self.game.snake_obj.direction.is_opposite(Direction::Right) {
+                    self.game.snake_obj.direction = Direction::Right
+                };
+                Task::none()
+            },
+            Message::NoOp => Task::none(),
+        }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
@@ -177,6 +203,24 @@ impl Snake {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        todo!()
+        use iced::keyboard::{Event as KeyEvent, Key, key};
+        use iced::time::Duration;
+
+        Subscription::batch([
+            iced::time::every(Duration::from_millis(200)).map(|_| Message::TimeMove),
+            iced::event::listen_with(|event, _, _| {
+                if let Keyboard(KeyEvent::KeyPressed { key, .. }) = event {
+                    match key {
+                        Key::Named(key::Named::ArrowUp)    => Some(Message::UpArrowPressed),
+                        Key::Named(key::Named::ArrowDown)  => Some(Message::DownArrowPressed),
+                        Key::Named(key::Named::ArrowLeft)  => Some(Message::LeftArrowPressed),
+                        Key::Named(key::Named::ArrowRight) => Some(Message::RightArrowPressed),
+                        _ => Some(Message::NoOp),
+                    }
+                } else {
+                    Some(Message::NoOp)
+                }
+            }),
+        ])
     }
 }
