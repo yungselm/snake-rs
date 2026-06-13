@@ -117,14 +117,14 @@ impl Game {
             }
             Direction::Down => {
                 let y = pos.y + DISCRETIZATION_STEP;
-                if y >= Y_COORDS { None } else { Some(Coords { x: pos.x, y }) }
+                if y >= Y_COORDS + DISCRETIZATION_STEP { None } else { Some(Coords { x: pos.x, y }) }
             }
             Direction::Left => {
                 pos.x.checked_sub(DISCRETIZATION_STEP).map(|x| Coords { x, y: pos.y })
             }
             Direction::Right => {
                 let x = pos.x + DISCRETIZATION_STEP;
-                if x >= X_COORDS { None } else { Some(Coords { x, y: pos.y }) }
+                if x >= X_COORDS + DISCRETIZATION_STEP { None } else { Some(Coords { x, y: pos.y }) }
             }
         }
     }
@@ -142,6 +142,10 @@ impl Game {
             if Self::next_coords(&next, direction).is_none() {
                 return GameState::GameOver;
             }
+        }
+
+        if self.snake_obj.position.iter().any(|seg| seg.x == next.x && seg.y == next.y) {
+            return GameState::GameOver;
         }
 
         GameState::Running
