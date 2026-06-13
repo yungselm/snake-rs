@@ -1,5 +1,4 @@
 use iced::{Element, Subscription, Task, Rectangle, Renderer, Theme, mouse};
-use iced::time::Duration;
 use iced::Event::Keyboard;
 use iced::widget::canvas;
 use rand::seq::IndexedRandom;
@@ -8,7 +7,7 @@ use super::message::Message;
 use crate::{X_COORDS, Y_COORDS, DISCRETIZATION_STEP};
 
 #[derive(Copy, Clone, PartialEq)]
-enum Direction {
+pub enum Direction {
     Up,
     Down,
     Left,
@@ -27,29 +26,26 @@ impl Direction {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Coords {
     x: u32,
     y: u32,
 }
 
+#[derive(Clone)]
 pub struct Player {
     position: Vec<Coords>,
-    length: u32,
     direction: Direction,
-    velocity: u32,
 }
 
 impl Player {
     pub fn new() -> Self {
         Player {
             position: vec![
-                Coords { x: 405, y: 305 }, // head
-                Coords { x: 395, y: 305 }, // tail
+                Coords { x: X_COORDS / 2 + DISCRETIZATION_STEP / 2 , y: Y_COORDS / 2 + DISCRETIZATION_STEP / 2 }, // head
+                Coords { x: X_COORDS / 2 - DISCRETIZATION_STEP / 2, y: Y_COORDS / 2 + DISCRETIZATION_STEP / 2 }, // tail
             ],
-            length: 2,
             direction: Direction::Right,
-            velocity: 10,
         }
     }
 
@@ -65,13 +61,32 @@ impl Player {
         self.position.insert(0, new_head);
         self.position.pop();
     }
+
+    fn set_direction(&mut self, new_direction: Direction) {
+        if !self.direction.is_opposite(new_direction) {
+            self.direction = new_direction;
+        }
+    }
+
+    fn add_fruit_head(&mut self) {
+        let old_head = self.position[0].clone();
+        let new_head = match self.direction {
+            Direction::Up    => Coords { x: old_head.x,                        y: old_head.y - DISCRETIZATION_STEP },
+            Direction::Down  => Coords { x: old_head.x,                        y: old_head.y + DISCRETIZATION_STEP },
+            Direction::Left  => Coords { x: old_head.x - DISCRETIZATION_STEP,  y: old_head.y },
+            Direction::Right => Coords { x: old_head.x + DISCRETIZATION_STEP,  y: old_head.y },
+        };
+        self.position.insert(0, new_head);
+    }
 }
 
+#[derive(Copy, Clone)]
 pub enum GameState {
     Running,
     GameOver,
 }
 
+#[derive(Clone)]
 pub struct Game {
     snake_obj: Player,
     fruit_pos: Coords,
@@ -109,10 +124,6 @@ impl Game {
 
         let mut rng = rand::rng();
         candidates.choose(&mut rng).cloned().expect("no valid position")
-    }
-
-    pub fn check_game_state(self) -> Self {
-        todo!()
     }
 }
 
@@ -165,30 +176,27 @@ impl Snake {
         match message {
             Message::TimeMove => { 
                 self.game.snake_obj.move_direction(current_direction);
+                let head = &self.game.snake_obj.position[0];
+                if head.x == self.game.fruit_pos.x && head.y == self.game.fruit_pos.y {
+                    self.game.snake_obj.add_fruit_head();
+                    self.game.fruit_pos = Game::set_fruit(&self.game.snake_obj.position);
+                }
                 Task::none() 
             },
             Message::UpArrowPressed => {
-                if !self.game.snake_obj.direction.is_opposite(Direction::Up) {
-                    self.game.snake_obj.direction = Direction::Up
-                };
+                self.game.snake_obj.set_direction(Direction::Up);
                 Task::none()
             },
             Message::DownArrowPressed => {
-                if !self.game.snake_obj.direction.is_opposite(Direction::Down) {
-                    self.game.snake_obj.direction = Direction::Down
-                };
+                self.game.snake_obj.set_direction(Direction::Down);
                 Task::none()
             },
             Message::LeftArrowPressed => {
-                if !self.game.snake_obj.direction.is_opposite(Direction::Left) {
-                    self.game.snake_obj.direction = Direction::Left
-                };
+                self.game.snake_obj.set_direction(Direction::Left);
                 Task::none()
             },
             Message::RightArrowPressed => {
-                if !self.game.snake_obj.direction.is_opposite(Direction::Right) {
-                    self.game.snake_obj.direction = Direction::Right
-                };
+                self.game.snake_obj.set_direction(Direction::Right);
                 Task::none()
             },
             Message::NoOp => Task::none(),
@@ -207,7 +215,7 @@ impl Snake {
         use iced::time::Duration;
 
         Subscription::batch([
-            iced::time::every(Duration::from_millis(200)).map(|_| Message::TimeMove),
+            iced::time::every(Duration::from_millis(100)).map(|_| Message::TimeMove),
             iced::event::listen_with(|event, _, _| {
                 if let Keyboard(KeyEvent::KeyPressed { key, .. }) = event {
                     match key {

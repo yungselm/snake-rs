@@ -2,7 +2,6 @@ use iced::window;
 
 mod gui;
 
-use gui::message::Message;
 use gui::snake::Snake;
 
 pub const X_COORDS: u32 = 800;
