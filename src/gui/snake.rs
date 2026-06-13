@@ -42,8 +42,12 @@ impl Player {
     pub fn new() -> Self {
         Player {
             position: vec![
-                Coords { x: X_COORDS / 2 + DISCRETIZATION_STEP / 2 , y: Y_COORDS / 2 + DISCRETIZATION_STEP / 2 }, // head
-                Coords { x: X_COORDS / 2 - DISCRETIZATION_STEP / 2, y: Y_COORDS / 2 + DISCRETIZATION_STEP / 2 }, // tail
+                Coords { 
+                    x: X_COORDS / 2 + DISCRETIZATION_STEP / 2 , 
+                    y: Y_COORDS / 2 + DISCRETIZATION_STEP / 2 }, // head
+                Coords { 
+                    x: X_COORDS / 2 - DISCRETIZATION_STEP / 2, 
+                    y: Y_COORDS / 2 + DISCRETIZATION_STEP / 2 }, // tail
             ],
             direction: Direction::Right,
         }
@@ -92,7 +96,6 @@ pub struct Game {
     fruit_pos: Coords,
     color_snake: (u8, u8, u8),
     color_fruit: (u8, u8, u8),
-    game_state: GameState,
 }
 
 impl Game {
@@ -104,8 +107,44 @@ impl Game {
             fruit_pos: fruit,
             color_snake: (255, 255, 255),
             color_fruit: (255, 0, 0),
-            game_state: GameState::Running,
         }
+    }
+
+    fn next_coords(pos: &Coords, direction: Direction) -> Option<Coords> {
+        match direction {
+            Direction::Up => {
+                pos.y.checked_sub(DISCRETIZATION_STEP).map(|y| Coords { x: pos.x, y })
+            }
+            Direction::Down => {
+                let y = pos.y + DISCRETIZATION_STEP;
+                if y >= Y_COORDS { None } else { Some(Coords { x: pos.x, y }) }
+            }
+            Direction::Left => {
+                pos.x.checked_sub(DISCRETIZATION_STEP).map(|x| Coords { x, y: pos.y })
+            }
+            Direction::Right => {
+                let x = pos.x + DISCRETIZATION_STEP;
+                if x >= X_COORDS { None } else { Some(Coords { x, y: pos.y }) }
+            }
+        }
+    }
+
+    pub fn check_game_state(&self) -> GameState {
+        let head = &self.snake_obj.position[0];
+        let direction = self.snake_obj.direction;
+
+        let next = match Self::next_coords(head, direction) {
+            None => return GameState::GameOver,
+            Some(c) => c,
+        };
+
+        if next == self.fruit_pos {
+            if Self::next_coords(&next, direction).is_none() {
+                return GameState::GameOver;
+            }
+        }
+
+        GameState::Running
     }
 
     fn set_fruit(snake_positions: &[Coords]) -> Coords {
@@ -175,12 +214,17 @@ impl Snake {
 
         match message {
             Message::TimeMove => { 
-                self.game.snake_obj.move_direction(current_direction);
-                let head = &self.game.snake_obj.position[0];
-                if head.x == self.game.fruit_pos.x && head.y == self.game.fruit_pos.y {
-                    self.game.snake_obj.add_fruit_head();
-                    self.game.fruit_pos = Game::set_fruit(&self.game.snake_obj.position);
-                }
+                match self.game.check_game_state() {
+                    GameState::GameOver => panic!(),
+                    GameState::Running => {
+                        self.game.snake_obj.move_direction(current_direction);
+                        let head = &self.game.snake_obj.position[0];
+                        if head.x == self.game.fruit_pos.x && head.y == self.game.fruit_pos.y {
+                            self.game.snake_obj.add_fruit_head();
+                            self.game.fruit_pos = Game::set_fruit(&self.game.snake_obj.position);
+                        }
+                    }
+                };
                 Task::none() 
             },
             Message::UpArrowPressed => {
