@@ -6,7 +6,7 @@ use rand::seq::IndexedRandom;
 use super::message::Message;
 use crate::{X_COORDS, Y_COORDS, DISCRETIZATION_STEP};
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -278,5 +278,50 @@ impl Snake {
                 }
             }),
         ])
+    }
+}
+
+#[cfg(test)]
+mod snake_tests {
+    use super::*;
+    use crate::DISCRETIZATION_STEP;
+    
+    #[test]
+    fn test_is_opposite() {
+        assert!(Direction::Down.is_opposite(Direction::Up));
+        assert!(Direction::Up.is_opposite(Direction::Down));
+        assert!(Direction::Left.is_opposite(Direction::Right));
+        assert!(Direction::Right.is_opposite(Direction::Left));
+        assert_eq!(Direction::Down.is_opposite(Direction::Down), false);
+        assert_eq!(Direction::Down.is_opposite(Direction::Left), false);
+        assert_eq!(Direction::Down.is_opposite(Direction::Right), false);
+        assert_eq!(Direction::Up.is_opposite(Direction::Left), false);
+        assert_eq!(Direction::Up.is_opposite(Direction::Right), false);
+        assert_eq!(Direction::Up.is_opposite(Direction::Up), false);
+        assert_eq!(Direction::Left.is_opposite(Direction::Left), false);
+        assert_eq!(Direction::Right.is_opposite(Direction::Right), false);
+    }
+
+    #[test]
+    fn test_move_direction() {
+        let mut player = Player::new();
+        let init_coords = player.position[0].clone();
+        let init_len = player.position.len();
+
+        // Image coordinate system where top left corner is (0,0)
+        player.move_direction(Direction::Right);
+        assert_eq!(player.position[0].x, init_coords.x + DISCRETIZATION_STEP);
+        assert_eq!(player.position[0].y, init_coords.y);
+        player.move_direction(Direction::Left);
+        assert_eq!(player.position[0].x, init_coords.x);
+        assert_eq!(player.position[0].y, init_coords.y);
+        player.move_direction(Direction::Down);
+        assert_eq!(player.position[0].x, init_coords.x);
+        assert_eq!(player.position[0].y, init_coords.y + DISCRETIZATION_STEP);
+        player.move_direction(Direction::Up);
+        assert_eq!(player.position[0].x, init_coords.x);
+        assert_eq!(player.position[0].y, init_coords.y);
+
+        assert_eq!(init_len, player.position.len());
     }
 }
