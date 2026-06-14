@@ -53,34 +53,32 @@ impl Player {
         }
     }
 
-    fn move_direction(&mut self, direction: Direction) {
-        let old_head = self.position[0].clone();
-        let new_head = match direction {
-            Direction::Up    => Coords { x: old_head.x,                        y: old_head.y - DISCRETIZATION_STEP },
-            Direction::Down  => Coords { x: old_head.x,                        y: old_head.y + DISCRETIZATION_STEP },
-            Direction::Left  => Coords { x: old_head.x - DISCRETIZATION_STEP,  y: old_head.y },
-            Direction::Right => Coords { x: old_head.x + DISCRETIZATION_STEP,  y: old_head.y },
-        };
-        self.direction = direction;
-        self.position.insert(0, new_head);
-        self.position.pop();
-    }
-
     fn set_direction(&mut self, new_direction: Direction) {
         if !self.direction.is_opposite(new_direction) {
             self.direction = new_direction;
         }
     }
 
+    fn move_direction(&mut self) {
+        let old_head = self.position[0].clone();
+        let new_head = Self::get_new_head(old_head, self.direction);
+        self.position.insert(0, new_head);
+        self.position.pop();
+    }
+
     fn add_fruit_head(&mut self) {
         let old_head = self.position[0].clone();
-        let new_head = match self.direction {
+        let new_head = Self::get_new_head(old_head, self.direction);
+        self.position.insert(0, new_head);
+    }
+
+    fn get_new_head(old_head: Coords, direction: Direction) -> Coords {
+        match direction {
             Direction::Up    => Coords { x: old_head.x,                        y: old_head.y - DISCRETIZATION_STEP },
             Direction::Down  => Coords { x: old_head.x,                        y: old_head.y + DISCRETIZATION_STEP },
             Direction::Left  => Coords { x: old_head.x - DISCRETIZATION_STEP,  y: old_head.y },
             Direction::Right => Coords { x: old_head.x + DISCRETIZATION_STEP,  y: old_head.y },
-        };
-        self.position.insert(0, new_head);
+        }
     }
 }
 
@@ -214,14 +212,13 @@ impl Snake {
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
-        let current_direction = self.game.snake_obj.direction.clone();
 
         match message {
             Message::TimeMove => { 
                 match self.game.check_game_state() {
                     GameState::GameOver => panic!(),
                     GameState::Running => {
-                        self.game.snake_obj.move_direction(current_direction);
+                        self.game.snake_obj.move_direction();
                         let head = &self.game.snake_obj.position[0];
                         if head.x == self.game.fruit_pos.x && head.y == self.game.fruit_pos.y {
                             self.game.snake_obj.add_fruit_head();
@@ -309,16 +306,20 @@ mod snake_tests {
         let init_len = player.position.len();
 
         // Image coordinate system where top left corner is (0,0)
-        player.move_direction(Direction::Right);
+        player.direction = Direction::Right;
+        player.move_direction();
         assert_eq!(player.position[0].x, init_coords.x + DISCRETIZATION_STEP);
         assert_eq!(player.position[0].y, init_coords.y);
-        player.move_direction(Direction::Left);
+        player.direction = Direction::Left;
+        player.move_direction();
         assert_eq!(player.position[0].x, init_coords.x);
         assert_eq!(player.position[0].y, init_coords.y);
-        player.move_direction(Direction::Down);
+        player.direction = Direction::Down;
+        player.move_direction();
         assert_eq!(player.position[0].x, init_coords.x);
         assert_eq!(player.position[0].y, init_coords.y + DISCRETIZATION_STEP);
-        player.move_direction(Direction::Up);
+        player.direction = Direction::Up;
+        player.move_direction();
         assert_eq!(player.position[0].x, init_coords.x);
         assert_eq!(player.position[0].y, init_coords.y);
 
