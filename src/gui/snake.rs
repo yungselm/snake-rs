@@ -214,22 +214,16 @@ impl Snake {
     pub fn update(&mut self, message: Message) -> Task<Message> {
 
         match message {
-            Message::TimeMove => { 
+            Message::TimeMove => {
                 match self.game.check_game_state() {
                     GameState::GameOver => panic!(),
                     GameState::Running => {
-                        self.game.snake_obj.move_direction();
-                        let head = &self.game.snake_obj.position[0];
-                        if head.x == self.game.fruit_pos.x && head.y == self.game.fruit_pos.y {
-                            self.game.snake_obj.add_fruit_head();
-                            match Game::set_fruit(&self.game.snake_obj.position) {
-                                Some(pos) => self.game.fruit_pos = pos,
-                                None => panic!(),
-                            }
+                        if let GameState::GameOver = self.make_timestep() {
+                            panic!()
                         }
                     }
-                };
-                Task::none() 
+                }
+                Task::none()
             },
             Message::UpArrowPressed => {
                 self.game.snake_obj.set_direction(Direction::Up);
@@ -279,6 +273,19 @@ impl Snake {
             }),
         ])
     }
+
+    fn make_timestep(&mut self) -> GameState {
+        self.game.snake_obj.move_direction();
+        let (hx, hy) = (self.game.snake_obj.position[0].x, self.game.snake_obj.position[0].y);
+        if hx == self.game.fruit_pos.x && hy == self.game.fruit_pos.y {
+            self.game.snake_obj.add_fruit_head();
+            match Game::set_fruit(&self.game.snake_obj.position) {
+                Some(pos) => self.game.fruit_pos = pos,
+                None => return GameState::GameOver,
+            }
+        }
+        GameState::Running
+    }
 }
 
 #[cfg(test)]
@@ -300,6 +307,16 @@ mod snake_tests {
         assert_eq!(Direction::Up.is_opposite(Direction::Up), false);
         assert_eq!(Direction::Left.is_opposite(Direction::Left), false);
         assert_eq!(Direction::Right.is_opposite(Direction::Right), false);
+    }
+
+    #[test]
+    fn test_set_direction() {
+        let mut player = Player::new();
+
+        player.set_direction(Direction::Up);
+        assert_eq!(player.direction, Direction::Up);
+        player.set_direction(Direction::Down);
+        assert_eq!(player.direction, Direction::Up);
     }
 
     #[test]
