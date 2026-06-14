@@ -99,7 +99,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         let snake = Player::new();
-        let fruit = Game::set_fruit(&snake.position);
+        let fruit = Game::set_fruit(&snake.position).unwrap(); // will never fail
         Game {
             snake_obj: snake,
             fruit_pos: fruit,
@@ -149,7 +149,7 @@ impl Game {
         GameState::Running
     }
 
-    fn set_fruit(snake_positions: &[Coords]) -> Coords {
+    fn set_fruit(snake_positions: &[Coords]) -> Option<Coords> {
         let x_steps = X_COORDS / DISCRETIZATION_STEP;
         let y_steps = Y_COORDS / DISCRETIZATION_STEP;
 
@@ -164,7 +164,7 @@ impl Game {
             .collect();
 
         let mut rng = rand::rng();
-        candidates.choose(&mut rng).cloned().expect("no valid position")
+        candidates.choose(&mut rng).cloned()
     }
 }
 
@@ -222,7 +222,10 @@ impl Snake {
                         let head = &self.game.snake_obj.position[0];
                         if head.x == self.game.fruit_pos.x && head.y == self.game.fruit_pos.y {
                             self.game.snake_obj.add_fruit_head();
-                            self.game.fruit_pos = Game::set_fruit(&self.game.snake_obj.position);
+                            match Game::set_fruit(&self.game.snake_obj.position) {
+                                Some(pos) => self.game.fruit_pos = pos,
+                                None => panic!(),
+                            }
                         }
                     }
                 };
